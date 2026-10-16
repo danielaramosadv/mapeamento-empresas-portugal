@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapeamento de Empresas em Portugal · versão com apoio de IA</title>
+<meta name="description" content="Painel interativo de 388 empresas em Portugal, com filtros por região, segmento, tamanho e período de fundação.">
+<style>
+:root{
+  --bg:#E8E6DC; --surface:#F6F4EC; --ink:#2B2420; --muted:#5E5750; --grid:#D3D0C3;
+  --brown:#886858; --brown-d:#5A3F33; --yellow:#FFD45B; --yellow-d:#B98A00;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI","Noto Sans","DejaVu Sans",system-ui,Arial,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.top{background:var(--brown-d);color:#fff;padding:26px 0 0}
+.badge{display:inline-block;background:var(--yellow);color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.4px;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.1;font-weight:800;letter-spacing:-.5px}
+.lead{font-size:15px;opacity:.88;margin-top:8px;max-width:760px}
+nav.tabs{display:flex;gap:4px;margin-top:20px;flex-wrap:wrap}
+nav.tabs button{appearance:none;border:0;background:transparent;color:#fff;opacity:.75;font:inherit;font-weight:600;font-size:15px;padding:11px 18px;border-radius:10px 10px 0 0;cursor:pointer}
+nav.tabs button:hover{opacity:1;background:rgba(255,255,255,.08)}
+nav.tabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);opacity:1}
+nav.tabs button:focus-visible{outline:3px solid var(--yellow);outline-offset:-3px}
+main{padding:24px 0 40px}
+section.page{display:none}
+section.page.on{display:block}
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:var(--surface);border-radius:var(--r);padding:14px 16px;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+.filters label{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;gap:5px;flex:1 1 190px;min-width:160px}
+.filters select{font:inherit;font-size:15px;font-weight:500;color:var(--ink);background:#fff;border:2px solid var(--yellow);border-radius:10px;padding:9px 10px;text-transform:none;letter-spacing:0}
+.filters select:focus-visible,.btn:focus-visible{outline:3px solid var(--brown-d);outline-offset:2px}
+.btn{font:inherit;font-weight:700;font-size:14px;background:var(--brown-d);color:#fff;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}
+.btn:hover{background:#443027}
+.btn[disabled]{opacity:.4;cursor:default}
+.chips{margin:12px 2px 0;font-size:14px;color:var(--muted);min-height:22px}
+.chips b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+.kpi{background:var(--yellow);border-radius:var(--r);padding:16px 18px;min-height:112px}
+.kpi small{display:block;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#4a3a00}
+.kpi b{display:block;font-size:34px;line-height:1.1;font-weight:800;margin-top:6px}
+.kpi b.t{font-size:20px;line-height:1.2;margin-top:8px}
+.kpi span{display:block;font-size:13px;margin-top:4px;color:#3b3000}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:var(--surface);border-radius:var(--r);padding:18px 18px 14px;box-shadow:0 1px 0 rgba(0,0,0,.05);min-width:0}
+.c5{grid-column:span 5}.c7{grid-column:span 7}.c12{grid-column:span 12}.c6{grid-column:span 6}
+.card h2{font-size:18px;font-weight:800}
+.card .hint{font-size:13px;color:var(--muted);margin:2px 0 12px}
+.bars{display:flex;flex-direction:column;gap:5px}
+.brow{display:grid;grid-template-columns:minmax(110px,215px) 1fr;align-items:center;gap:10px;border:0;background:none;font:inherit;text-align:left;cursor:pointer;padding:2px 4px;border-radius:8px;color:inherit;width:100%}
+.brow:hover{background:rgba(136,104,88,.12)}
+.brow:focus-visible{outline:3px solid var(--brown-d)}
+.brow .l{font-size:14px;text-align:right;line-height:1.2;overflow-wrap:anywhere}
+.brow .t{display:flex;align-items:center;height:24px}
+.brow .b{height:20px;background:var(--brown);border-radius:0 5px 5px 0;min-width:3px;transition:width .35s}
+.brow .v{font-size:14px;font-weight:700;margin-left:8px;white-space:nowrap}
+.brow.sel .b{background:var(--brown-d)}
+.brow.sel .l{font-weight:800}
+.brow.zero .b{background:var(--grid)}
+.cols{display:flex;align-items:flex-end;gap:8px;height:230px;padding-top:22px;border-bottom:2px solid var(--grid)}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;border:0;background:none;font:inherit;cursor:pointer;color:inherit;border-radius:8px 8px 0 0;min-width:0}
+.col:hover{background:rgba(136,104,88,.12)}
+.col:focus-visible{outline:3px solid var(--brown-d)}
+.col .v{font-size:13px;font-weight:700;margin-bottom:4px}
+.col .b{width:100%;max-width:56px;background:var(--brown);border-radius:6px 6px 0 0;min-height:3px;transition:height .35s}
+.col.sel .b{background:var(--brown-d)}
+.col.zero .b{background:var(--grid)}
+.xl{display:flex;gap:8px;margin-top:6px}
+.xl span{flex:1;text-align:center;font-size:12px;line-height:1.15;overflow-wrap:anywhere;min-width:0}
+.heat{display:grid;gap:3px;font-size:13px}
+.heat .h{font-size:12px;font-weight:700;color:var(--muted);text-align:center;align-self:end;line-height:1.1;padding-bottom:3px}
+.heat .rl{font-size:13px;text-align:right;align-self:center;padding-right:6px}
+.heat .c{height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+details{margin-top:10px;font-size:13px}
+summary{cursor:pointer;color:var(--muted);font-weight:600}
+summary:focus-visible{outline:3px solid var(--brown-d)}
+table.t{border-collapse:collapse;margin-top:6px;width:100%}
+table.t th,table.t td{padding:4px 8px;border-bottom:1px solid var(--grid);text-align:left}
+table.t td:last-child,table.t th:last-child{text-align:right}
+.scroll{overflow-x:auto;padding-bottom:4px}
+.note{font-size:13px;color:var(--muted);margin-top:16px}
+/* relatório */
+.doc{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.doc .card p,.doc .card li{font-size:15px}
+.doc .card ul{padding-left:20px;margin-top:6px}
+.doc .card h2{margin-bottom:6px}
+.big{font-size:17px}
+.donut{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.leg{list-style:none;padding:0!important;font-size:14px}
+.leg li{display:flex;align-items:center;gap:8px;margin:3px 0}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+/* humano + ia */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.who{border-top:6px solid var(--brown)}
+.who.ai{border-top-color:var(--yellow-d)}
+.who h2{margin-bottom:8px}
+.who li{margin:6px 0;font-size:15px}
+.steps{counter-reset:s;list-style:none;padding:0!important}
+.steps li{counter-increment:s;position:relative;padding:8px 0 8px 40px;border-bottom:1px solid var(--grid)}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:50%;background:var(--brown-d);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.callout{background:var(--yellow);border-radius:var(--r);padding:18px 20px}
+.callout h2{margin-bottom:6px}
+footer{background:var(--brown-d);color:#fff;padding:22px 0;font-size:13px}
+footer a{color:var(--yellow)}
+.sr{position:absolute;left:-9999px}
+@media (max-width:900px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .c5,.c7,.c6{grid-column:span 12}
+  .two{grid-template-columns:1fr}
+  .brow{grid-template-columns:minmax(90px,130px) 1fr}
+  .cols{height:200px}
+  .scroll>.cols,.scroll>.xl{min-width:520px}
+  .scroll>.heat{min-width:760px}
+}
+@media (prefers-reduced-motion:reduce){.b{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+ <div class="wrap">
+  <span class="badge">VERSÃO PRODUZIDA COM APOIO DE IA</span>
+  <h1>Mapeamento de Empresas em Portugal</h1>
+  <p class="lead">O mesmo exercício do painel feito no Looker Studio, refeito aqui como página interativa a partir dos dados limpos e do painel original. Nenhum dado foi inventado: tudo vem da base fornecida.</p>
+  <nav class="tabs" role="tablist" aria-label="Páginas">
+   <button role="tab" id="t-painel" aria-selected="true" aria-controls="p-painel">1 · Painel</button>
+   <button role="tab" id="t-rel" aria-selected="false" aria-controls="p-rel">2 · Relatório</button>
+   <button role="tab" id="t-como" aria-selected="false" aria-controls="p-como">3 · Como foi feito</button>
+  </nav>
+ </div>
+</header>
+
+<main class="wrap">
+<!-- PÁGINA 1 -->
+<section class="page on" id="p-painel" role="tabpanel" aria-labelledby="t-painel">
+ <div class="filters" role="group" aria-label="Filtros">
+  <label>Região<select id="f-r"></select></label>
+  <label>Segmento<select id="f-s"></select></label>
+  <label>Tamanho (funcionários)<select id="f-t"></select></label>
+  <label>Ano de fundação<select id="f-p"></select></label>
+  <button class="btn" id="reset" type="button">Limpar filtros</button>
+ </div>
+ <div class="chips" id="chips" aria-live="polite"></div>
+ <div class="kpis" id="kpis"></div>
+ <div class="grid">
+  <div class="card c5"><h2>Empresas por região</h2><div class="hint">Clique numa barra para filtrar</div><div id="g-r"></div></div>
+  <div class="card c7"><h2>Empresas por tamanho</h2><div class="hint">Número de funcionários, do menor para o maior</div><div id="g-t"></div></div>
+  <div class="card c7"><h2>Principais segmentos de atuação</h2><div class="hint">Os 10 maiores; os outros 84 estão agrupados</div><div id="g-s"></div></div>
+  <div class="card c5"><h2>Quando foram fundadas</h2><div class="hint">Por período; "sem ano" = não informado</div><div id="g-p"></div></div>
+  <div class="card c12"><h2>Onde cada porte se concentra</h2><div class="hint">Cruzamento região × tamanho. Respeita os filtros de segmento e de ano de fundação.</div><div id="g-h"></div></div>
+ </div>
+ <p class="note">Os filtros se combinam. Em cada gráfico, a própria dimensão não é filtrada, para você comparar as opções (a selecionada fica em marrom-escuro). Os nomes dos segmentos seguem o original da base (em inglês). A lista de empresas não é exibida de propósito: esta página usa só totais agrupados.</p>
+</section>
+
+<!-- PÁGINA 2 -->
+<section class="page" id="p-rel" role="tabpanel" aria-labelledby="t-rel">
+ <div class="doc">
+  <div class="card c12"><h2>Relatório: mapeamento de empresas em Portugal</h2>
+   <p class="big">Base de 388 organizações, limpa e padronizada. Os dados mostram um mercado fortemente concentrado em Lisboa, com maior presença de empresas de tecnologia e de recursos humanos, e formado sobretudo por empresas de pequeno e médio porte.</p></div>
+  <div class="card c6"><h2>Visão geral</h2>
+   <p>385 das 388 organizações (99,2%) têm sede em Portugal. As outras três ficam nos EUA (2) e no Brasil (1). Dez empresas informam apenas "Portugal", sem cidade ou região.</p></div>
+  <div class="card c6"><h2>O que fazem</h2>
+   <p>Existem 94 segmentos de atuação. Os maiores são Tecnologia da Informação e Serviços (43 empresas, 11%), Recursos Humanos (28), Construção (18), Software (18), Organizações sem fins lucrativos (17) e Marketing e Publicidade (17). Seguem-se Administração Pública (13), Farmacêutica (11), Imobiliário (9) e Jornais (8).</p></div>
+  <div class="card c7"><h2>Onde estão</h2>
+   <div class="donut"><svg id="donut" width="190" height="190" viewBox="0 0 190 190" role="img" aria-label="Proporção de empresas por região"></svg><ul class="leg" id="donut-leg"></ul></div>
+   <p style="margin-top:10px">Só a cidade de Lisboa reúne 187 empresas, seguida por Porto (33) e Oeiras (28). O distrito do Porto tem 64.</p></div>
+  <div class="card c5"><h2>Qual o tamanho</h2>
+   <p>A faixa mais comum é a de 51 a 200 funcionários, com 154 empresas (39,7%).</p>
+   <ul><li>Até 50 funcionários: 122 empresas (31,4%)</li><li>De 51 a 500: 222 (57,2%)</li><li>Mais de 500: 44 (11,3%), das quais 8 com mais de 10.000 funcionários</li></ul></div>
+  <div class="card c12"><h2>Quando foram fundadas</h2>
+   <p>359 empresas informam o ano de fundação, e a mediana é 2003. 24 foram fundadas antes de 1950 (a mais antiga, em 1615), 134 entre 1950 e 1999, 68 entre 2000 e 2009, 99 entre 2010 e 2019 e 34 a partir de 2020.</p></div>
+  <div class="card c12" style="border-left:6px solid var(--yellow-d)"><h2>Observações sobre os dados</h2>
+   <ul>
+    <li>21 empresas constam com a cidade "Póvoa de Lisboa", no distrito de Viseu. Não foi possível confirmar que esse local exista com esse nome, e pode ser um erro da fonte. Foi mantido como veio, e a região Centro inclui essas 21.</li>
+    <li>Santarém foi classificada como região Centro e Setúbal junto da Área Metropolitana de Lisboa. São escolhas de agrupamento.</li>
+    <li>29 empresas não informam o ano de fundação e uma não informa o site. Os campos ficaram em branco.</li>
+    <li>A coluna Tamanho foi corrigida, porque o Excel tinha transformado faixas como "11-50" em datas.</li>
+   </ul></div>
+ </div>
+</section>
+
+<!-- PÁGINA 3 -->
+<section class="page" id="p-como" role="tabpanel" aria-labelledby="t-como">
+ <div class="doc">
+  <div class="card c12 callout"><h2>A IA entrega mais rápido. A pessoa decide o que vale entregar.</h2>
+   <p class="big">Este trabalho mostra os dois lados: o painel que eu construí no Looker Studio, com orientação da IA na limpeza dos dados, e esta versão, que a IA refez a partir dos mesmos dados e do meu painel. Em ambos, as decisões e a revisão foram minhas.</p></div>
+  <div class="two c12" style="grid-column:span 12">
+   <div class="card who"><h2>O que eu (pessoa) fiz</h2><ul>
+    <li>Escolhi o objetivo e dei o contexto: o exercício da aula, o que o professor pediu e para quem seria entregue.</li>
+    <li>Mandei a base em três formatos (Excel, CSV e Planilhas Google) para decidirmos qual usar.</li>
+    <li>Defini a regra de ouro: <b>não inventar dados e, na dúvida, não remover sem perguntar</b>.</li>
+    <li>Decidi que a base de empresas não seria publicada.</li>
+    <li>Construí o painel no Looker Studio, passo a passo, e conferi cada tela.</li>
+    <li>Cobrei revisão: nada de aceitar o primeiro resultado.</li>
+   </ul></div>
+   <div class="card who ai"><h2>O que a IA fez</h2><ul>
+    <li>Identificou que o Excel tinha transformado faixas como "11-50" em datas ("nov/50") e propôs a correção.</li>
+    <li>Limpou as 388 linhas sem remover nenhuma, e registrou o que mudou e as suposições.</li>
+    <li>Calculou os números a partir da base e escreveu o relatório descritivo.</li>
+    <li>Guiou a construção do painel e revisou os PDFs que enviei.</li>
+    <li>Refez o painel como página interativa, sem os nomes das empresas.</li>
+    <li>Parou e sinalizou o que não conseguiu confirmar, como a "Póvoa de Lisboa".</li>
+   </ul></div>
+  </div>
+  <div class="card c12"><h2>O que a revisão encontrou pelo caminho</h2>
+   <p class="hint">A IA também erra. Estes casos apareceram porque houve revisão:</p>
+   <ol class="steps">
+    <li>Duas cifras erradas nas notas de limpeza (25 em vez de 24 empresas antes de 1950, e 3 em vez de 2 nos Açores). Corrigidas e recalculadas.</li>
+    <li>O gráfico de tamanho saía em ordem embaralhada, porque o Looker somava a coluna de ordem em vez de usar o valor da faixa.</li>
+    <li>No PDF exportado, o indicador mostrava 235 em vez de 388, por causa de um filtro aplicado ao clicar na pizza.</li>
+    <li>Uma frase do relatório dizia que o mercado era "dominado" por tecnologia e RH, o que os números (18%) não sustentam. Foi reescrita.</li>
+    <li>O PDF do Looker não reproduzia o que aparecia na tela, então a captura foi refeita por outro caminho.</li>
+   </ol></div>
+  <div class="card c12"><h2>O que aprendi</h2><ul>
+   <li>Um prompt sem contexto produz um resultado genérico. Objetivo, regras e exemplos reais mudam a qualidade.</li>
+   <li>Quem gerencia precisa entender o suficiente para perceber quando algo está errado.</li>
+   <li>Revisar é parte do trabalho, não um extra.</li>
+   <li>Dá para entregar um trabalho de dados sem ser analista de dados, desde que haja um humano responsável no comando.</li>
+  </ul></div>
+ </div>
+</section>
+</main>
+
+<footer><div class="wrap">Exercício da aula de Análise de Dados e TI aplicada à Gestão (Prepara Portugal). Base de 388 empresas, após limpeza. Esta página foi produzida com apoio do Claude (IA) a partir dos dados e do painel fornecidos, e usa apenas totais agrupados. Autoria e decisões: Daniela Ramos.</div></footer>
+
+<script>
+const CUBO = [["Algarve", "Non-profit Organization Management", "11 a 50", "2000-2009", 1], ["Algarve", "Outros segmentos", "11 a 50", "1950-1999", 1], ["Algarve", "Outros segmentos", "201 a 500", "2020 em diante", 1], ["Açores", "Outros segmentos", "11 a 50", "2010-2019", 1], ["Açores", "Outros segmentos", "201 a 500", "1950-1999", 1], ["Centro", "Computer Software", "51 a 200", "1950-1999", 1], ["Centro", "Construction", "501 a 1.000", "Antes de 1950", 1], ["Centro", "Construction", "51 a 200", "2010-2019", 1], ["Centro", "Government Administration", "201 a 500", "Sem ano", 1], ["Centro", "Government Administration", "51 a 200", "Sem ano", 1], ["Centro", "Human Resources", "11 a 50", "2000-2009", 1], ["Centro", "Information Technology & Services", "11 a 50", "2000-2009", 1], ["Centro", "Information Technology & Services", "201 a 500", "2000-2009", 1], ["Centro", "Information Technology & Services", "201 a 500", "2010-2019", 1], ["Centro", "Information Technology & Services", "51 a 200", "1950-1999", 1], ["Centro", "Marketing & Advertising", "201 a 500", "2000-2009", 1], ["Centro", "Marketing & Advertising", "51 a 200", "2000-2009", 2], ["Centro", "Non-profit Organization Management", "11 a 50", "2010-2019", 1], ["Centro", "Non-profit Organization Management", "11 a 50", "Antes de 1950", 1], ["Centro", "Non-profit Organization Management", "51 a 200", "1950-1999", 1], ["Centro", "Outros segmentos", "1 a 10", "1950-1999", 1], ["Centro", "Outros segmentos", "1.001 a 5.000", "1950-1999", 1], ["Centro", "Outros segmentos", "1.001 a 5.000", "2000-2009", 2], ["Centro", "Outros segmentos", "11 a 50", "1950-1999", 3], ["Centro", "Outros segmentos", "11 a 50", "2000-2009", 1], ["Centro", "Outros segmentos", "11 a 50", "2010-2019", 1], ["Centro", "Outros segmentos", "11 a 50", "2020 em diante", 1], ["Centro", "Outros segmentos", "11 a 50", "Antes de 1950", 1], ["Centro", "Outros segmentos", "11 a 50", "Sem ano", 1], ["Centro", "Outros segmentos", "201 a 500", "1950-1999", 5], ["Centro", "Outros segmentos", "201 a 500", "2010-2019", 1], ["Centro", "Outros segmentos", "501 a 1.000", "1950-1999", 2], ["Centro", "Outros segmentos", "51 a 200", "1950-1999", 4], ["Centro", "Outros segmentos", "51 a 200", "2000-2009", 1], ["Centro", "Outros segmentos", "51 a 200", "Sem ano", 1], ["Centro", "Outros segmentos", "Mais de 10.000", "Antes de 1950", 1], ["Centro", "Pharmaceuticals", "11 a 50", "1950-1999", 1], ["Centro", "Pharmaceuticals", "51 a 200", "2010-2019", 1], ["Centro", "Real Estate", "51 a 200", "1950-1999", 1], ["Fora de Portugal", "Computer Software", "51 a 200", "2010-2019", 1], ["Fora de Portugal", "Information Technology & Services", "51 a 200", "2000-2009", 1], ["Fora de Portugal", "Outros segmentos", "201 a 500", "2000-2009", 1], ["Norte", "Computer Software", "11 a 50", "2000-2009", 1], ["Norte", "Computer Software", "201 a 500", "2020 em diante", 1], ["Norte", "Computer Software", "51 a 200", "2000-2009", 2], ["Norte", "Construction", "201 a 500", "1950-1999", 3], ["Norte", "Construction", "501 a 1.000", "1950-1999", 1], ["Norte", "Construction", "51 a 200", "1950-1999", 3], ["Norte", "Construction", "51 a 200", "Sem ano", 1], ["Norte", "Human Resources", "11 a 50", "2000-2009", 1], ["Norte", "Human Resources", "201 a 500", "1950-1999", 1], ["Norte", "Information Technology & Services", "1 a 10", "2000-2009", 1], ["Norte", "Information Technology & Services", "11 a 50", "2010-2019", 2], ["Norte", "Information Technology & Services", "11 a 50", "2020 em diante", 1], ["Norte", "Information Technology & Services", "201 a 500", "2010-2019", 1], ["Norte", "Marketing & Advertising", "11 a 50", "2010-2019", 1], ["Norte", "Marketing & Advertising", "201 a 500", "2000-2009", 1], ["Norte", "Marketing & Advertising", "51 a 200", "2010-2019", 1], ["Norte", "Non-profit Organization Management", "1 a 10", "2020 em diante", 1], ["Norte", "Non-profit Organization Management", "11 a 50", "2000-2009", 3], ["Norte", "Non-profit Organization Management", "51 a 200", "1950-1999", 1], ["Norte", "Non-profit Organization Management", "51 a 200", "Antes de 1950", 1], ["Norte", "Non-profit Organization Management", "Mais de 10.000", "Antes de 1950", 1], ["Norte", "Outros segmentos", "1 a 10", "2000-2009", 1], ["Norte", "Outros segmentos", "1 a 10", "2010-2019", 2], ["Norte", "Outros segmentos", "1 a 10", "2020 em diante", 1], ["Norte", "Outros segmentos", "1.001 a 5.000", "2000-2009", 1], ["Norte", "Outros segmentos", "1.001 a 5.000", "Antes de 1950", 1], ["Norte", "Outros segmentos", "11 a 50", "1950-1999", 3], ["Norte", "Outros segmentos", "11 a 50", "2000-2009", 2], ["Norte", "Outros segmentos", "11 a 50", "2010-2019", 5], ["Norte", "Outros segmentos", "11 a 50", "Sem ano", 2], ["Norte", "Outros segmentos", "201 a 500", "1950-1999", 4], ["Norte", "Outros segmentos", "201 a 500", "2000-2009", 3], ["Norte", "Outros segmentos", "201 a 500", "2010-2019", 1], ["Norte", "Outros segmentos", "201 a 500", "Antes de 1950", 3], ["Norte", "Outros segmentos", "201 a 500", "Sem ano", 1], ["Norte", "Outros segmentos", "501 a 1.000", "1950-1999", 4], ["Norte", "Outros segmentos", "501 a 1.000", "Antes de 1950", 1], ["Norte", "Outros segmentos", "51 a 200", "1950-1999", 10], ["Norte", "Outros segmentos", "51 a 200", "2000-2009", 2], ["Norte", "Outros segmentos", "51 a 200", "2010-2019", 8], ["Norte", "Outros segmentos", "51 a 200", "2020 em diante", 1], ["Norte", "Outros segmentos", "51 a 200", "Antes de 1950", 2], ["Norte", "Pharmaceuticals", "201 a 500", "1950-1999", 2], ["Não informada", "Computer Software", "51 a 200", "2010-2019", 1], ["Não informada", "Construction", "501 a 1.000", "Sem ano", 1], ["Não informada", "Government Administration", "201 a 500", "2010-2019", 1], ["Não informada", "Marketing & Advertising", "51 a 200", "2010-2019", 1], ["Não informada", "Newspapers", "51 a 200", "Antes de 1950", 1], ["Não informada", "Outros segmentos", "1 a 10", "2010-2019", 1], ["Não informada", "Outros segmentos", "201 a 500", "1950-1999", 2], ["Não informada", "Outros segmentos", "201 a 500", "2010-2019", 1], ["Não informada", "Pharmaceuticals", "51 a 200", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Computer Software", "201 a 500", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Computer Software", "501 a 1.000", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Computer Software", "51 a 200", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Computer Software", "51 a 200", "2010-2019", 6], ["Área Metropolitana de Lisboa", "Computer Software", "51 a 200", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Computer Software", "51 a 200", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Construction", "1.001 a 5.000", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Construction", "1.001 a 5.000", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Construction", "201 a 500", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Construction", "501 a 1.000", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Construction", "51 a 200", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Construction", "51 a 200", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Government Administration", "11 a 50", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Government Administration", "201 a 500", "Sem ano", 2], ["Área Metropolitana de Lisboa", "Government Administration", "501 a 1.000", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Government Administration", "51 a 200", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Government Administration", "51 a 200", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Government Administration", "51 a 200", "Antes de 1950", 1], ["Área Metropolitana de Lisboa", "Government Administration", "51 a 200", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Government Administration", "Mais de 10.000", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Human Resources", "1 a 10", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Human Resources", "1 a 10", "2000-2009", 2], ["Área Metropolitana de Lisboa", "Human Resources", "1 a 10", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Human Resources", "1.001 a 5.000", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Human Resources", "11 a 50", "1950-1999", 5], ["Área Metropolitana de Lisboa", "Human Resources", "11 a 50", "2000-2009", 2], ["Área Metropolitana de Lisboa", "Human Resources", "11 a 50", "2010-2019", 3], ["Área Metropolitana de Lisboa", "Human Resources", "11 a 50", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Human Resources", "11 a 50", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Human Resources", "201 a 500", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Human Resources", "201 a 500", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Human Resources", "501 a 1.000", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Human Resources", "501 a 1.000", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Human Resources", "51 a 200", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Human Resources", "51 a 200", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Human Resources", "Mais de 10.000", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "1.001 a 5.000", "2000-2009", 2], ["Área Metropolitana de Lisboa", "Information Technology & Services", "1.001 a 5.000", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "11 a 50", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "201 a 500", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "201 a 500", "2000-2009", 2], ["Área Metropolitana de Lisboa", "Information Technology & Services", "201 a 500", "2010-2019", 2], ["Área Metropolitana de Lisboa", "Information Technology & Services", "501 a 1.000", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "501 a 1.000", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Information Technology & Services", "51 a 200", "1950-1999", 3], ["Área Metropolitana de Lisboa", "Information Technology & Services", "51 a 200", "2000-2009", 3], ["Área Metropolitana de Lisboa", "Information Technology & Services", "51 a 200", "2010-2019", 10], ["Área Metropolitana de Lisboa", "Information Technology & Services", "51 a 200", "2020 em diante", 6], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "11 a 50", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "11 a 50", "2000-2009", 3], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "11 a 50", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "51 a 200", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "51 a 200", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "51 a 200", "Sem ano", 2], ["Área Metropolitana de Lisboa", "Marketing & Advertising", "Autônomo (self-employed)", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Newspapers", "1 a 10", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Newspapers", "1 a 10", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Newspapers", "11 a 50", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Newspapers", "11 a 50", "2010-2019", 2], ["Área Metropolitana de Lisboa", "Newspapers", "201 a 500", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Newspapers", "201 a 500", "2000-2009", 1], ["Área Metropolitana de Lisboa", "Non-profit Organization Management", "1 a 10", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Non-profit Organization Management", "1 a 10", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Non-profit Organization Management", "1 a 10", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Non-profit Organization Management", "11 a 50", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Non-profit Organization Management", "51 a 200", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "1 a 10", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Outros segmentos", "1 a 10", "2000-2009", 2], ["Área Metropolitana de Lisboa", "Outros segmentos", "1 a 10", "2010-2019", 3], ["Área Metropolitana de Lisboa", "Outros segmentos", "1 a 10", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "1 a 10", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "1.001 a 5.000", "Antes de 1950", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "11 a 50", "1950-1999", 8], ["Área Metropolitana de Lisboa", "Outros segmentos", "11 a 50", "2000-2009", 4], ["Área Metropolitana de Lisboa", "Outros segmentos", "11 a 50", "2010-2019", 13], ["Área Metropolitana de Lisboa", "Outros segmentos", "11 a 50", "2020 em diante", 7], ["Área Metropolitana de Lisboa", "Outros segmentos", "201 a 500", "1950-1999", 6], ["Área Metropolitana de Lisboa", "Outros segmentos", "201 a 500", "2000-2009", 3], ["Área Metropolitana de Lisboa", "Outros segmentos", "201 a 500", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "201 a 500", "Antes de 1950", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "201 a 500", "Sem ano", 2], ["Área Metropolitana de Lisboa", "Outros segmentos", "5.001 a 10.000", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "501 a 1.000", "1950-1999", 4], ["Área Metropolitana de Lisboa", "Outros segmentos", "501 a 1.000", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "1950-1999", 23], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "2000-2009", 5], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "2010-2019", 11], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "2020 em diante", 2], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "Antes de 1950", 5], ["Área Metropolitana de Lisboa", "Outros segmentos", "51 a 200", "Sem ano", 2], ["Área Metropolitana de Lisboa", "Outros segmentos", "Mais de 10.000", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "Mais de 10.000", "Antes de 1950", 1], ["Área Metropolitana de Lisboa", "Outros segmentos", "Mais de 10.000", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Pharmaceuticals", "201 a 500", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Pharmaceuticals", "51 a 200", "1950-1999", 2], ["Área Metropolitana de Lisboa", "Pharmaceuticals", "51 a 200", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Pharmaceuticals", "51 a 200", "Antes de 1950", 1], ["Área Metropolitana de Lisboa", "Real Estate", "11 a 50", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Real Estate", "11 a 50", "2020 em diante", 1], ["Área Metropolitana de Lisboa", "Real Estate", "201 a 500", "2010-2019", 1], ["Área Metropolitana de Lisboa", "Real Estate", "51 a 200", "1950-1999", 1], ["Área Metropolitana de Lisboa", "Real Estate", "51 a 200", "2010-2019", 2], ["Área Metropolitana de Lisboa", "Real Estate", "51 a 200", "Sem ano", 1], ["Área Metropolitana de Lisboa", "Real Estate", "Mais de 10.000", "1950-1999", 1]];
+const REG = ["Área Metropolitana de Lisboa","Norte","Centro","Não informada","Algarve","Fora de Portugal","Açores"];
+const TAM = ["Autônomo (self-employed)","1 a 10","11 a 50","51 a 200","201 a 500","501 a 1.000","1.001 a 5.000","5.001 a 10.000","Mais de 10.000"];
+const PER = ["Antes de 1950","1950-1999","2000-2009","2010-2019","2020 em diante","Sem ano"];
+const SEG = ["Information Technology & Services","Human Resources","Construction","Computer Software","Non-profit Organization Management","Marketing & Advertising","Government Administration","Pharmaceuticals","Real Estate","Newspapers","Outros segmentos"];
+const TOTAL = CUBO.reduce((a,r)=>a+r[4],0);
+const IDX = {r:0,s:1,t:2,p:3};
+const ORDER = {r:REG,s:SEG,t:TAM,p:PER};
+const LABEL = {r:"Região",s:"Segmento",t:"Tamanho",p:"Fundação"};
+const st = {r:"",s:"",t:"",p:""};
+const fmt = n => n.toLocaleString("pt-PT");
+const pct = (n,d) => d? (100*n/d).toLocaleString("pt-PT",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "–";
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function rowsFiltered(skip){ return CUBO.filter(x=>Object.keys(st).every(k=>k===skip||!st[k]||x[IDX[k]]===st[k])); }
+function counts(dim,skip){
+  const m = Object.fromEntries(ORDER[dim].map(k=>[k,0]));
+  rowsFiltered(skip).forEach(x=>{ m[x[IDX[dim]]]+=x[4]; });
+  return m;
+}
+function sum(rows){ return rows.reduce((a,r)=>a+r[4],0); }
+
+function tableHtml(dim,m){
+  return `<details><summary>Ver como tabela</summary><table class="t"><thead><tr><th>${LABEL[dim]}</th><th>Empresas</th></tr></thead><tbody>${ORDER[dim].map(k=>`<tr><td>${esc(k)}</td><td>${fmt(m[k])}</td></tr>`).join("")}</tbody></table></details>`;
+}
+function hbars(dim,sortDesc){
+  const m = counts(dim,dim);
+  let keys = ORDER[dim].slice();
+  if(sortDesc) keys.sort((a,b)=>m[b]-m[a]);
+  if(dim==="s"){ keys = keys.filter(k=>k!=="Outros segmentos").concat("Outros segmentos"); }
+  const outros = dim==="s"? m["Outros segmentos"]:null;
+  if(dim==="s") keys = keys.filter(k=>k!=="Outros segmentos");
+  const max = Math.max(1,...keys.map(k=>m[k]));
+  const tot = Object.values(m).reduce((a,b)=>a+b,0);
+  const h = keys.map(k=>{
+    const w = m[k]/max*100;
+    return `<button type="button" class="brow ${st[dim]===k?"sel":""} ${m[k]===0?"zero":""}" data-d="${dim}" data-k="${esc(k)}" title="${esc(k)}: ${fmt(m[k])} empresas (${pct(m[k],tot)})" aria-pressed="${st[dim]===k}"><span class="l">${esc(k)}</span><span class="t"><span class="b" style="width:${w}%"></span><span class="v">${fmt(m[k])}</span></span></button>`;
+  }).join("");
+  const extra = outros===null? "" : `<p class="note" style="margin-top:8px">Outros 84 segmentos, somados e fora do gráfico para não distorcer a comparação: <b>${fmt(outros)}</b> empresas.</p>`;
+  return `<div class="bars">${h}</div>`+extra+tableHtml(dim,m);
+}
+function cols(dim){
+  const m = counts(dim,dim);
+  const keys = ORDER[dim];
+  const max = Math.max(1,...keys.map(k=>m[k]));
+  const tot = Object.values(m).reduce((a,b)=>a+b,0);
+  const c = keys.map(k=>`<button type="button" class="col ${st[dim]===k?"sel":""} ${m[k]===0?"zero":""}" data-d="${dim}" data-k="${esc(k)}" title="${esc(k)}: ${fmt(m[k])} empresas (${pct(m[k],tot)})" aria-pressed="${st[dim]===k}"><span class="v">${fmt(m[k])}</span><span class="b" style="height:${Math.max(m[k]/max*100,1.5)}%"></span></button>`).join("");
+  const x = keys.map(k=>`<span>${esc(k.replace(" (self-employed)",""))}</span>`).join("");
+  return `<div class="scroll"><div class="cols">${c}</div><div class="xl">${x}</div></div>`+tableHtml(dim,m);
+}
+function heat(){
+  const rows = rowsFiltered("rt");  // respeita só segmento e período
+  const real = CUBO.filter(x=>(!st.s||x[1]===st.s)&&(!st.p||x[3]===st.p));
+  const g = {}; let max=1;
+  real.forEach(x=>{ const k=x[0]+"|"+x[2]; g[k]=(g[k]||0)+x[4]; });
+  Object.values(g).forEach(v=>{ if(v>max) max=v; });
+  const short = t=>t.replace(" (self-employed)","");
+  let h = `<div class="heat" style="grid-template-columns:minmax(120px,190px) repeat(${TAM.length},minmax(0,1fr))"><div></div>`+TAM.map(t=>`<div class="h">${esc(short(t))}</div>`).join("");
+  REG.forEach(r=>{
+    h += `<div class="rl">${esc(r)}</div>`;
+    TAM.forEach(t=>{
+      const v = g[r+"|"+t]||0, a = v? .12+.88*Math.sqrt(v/max):0;
+      const bg = v? `rgba(136,104,88,${a.toFixed(2)})` : "transparent";
+      const col = a>.55? "#fff":"var(--ink)";
+      h += `<div class="c" style="background:${bg};color:${col}" title="${esc(r)} · ${esc(t)}: ${fmt(v)} empresas">${v||""}</div>`;
+    });
+  });
+  return `<div class="scroll">`+h+"</div></div>";
+}
+function kpis(){
+  const rows = rowsFiltered(""), n = sum(rows);
+  const mr = counts("r","r"), mt = counts("t","t");
+  const top = (m)=>{ let b=null; Object.keys(m).forEach(k=>{ if(m[k]>0&&(b===null||m[k]>m[b])) b=k; }); return b; };
+  const tr = top(Object.fromEntries(Object.entries(counts("r","")).map(([k,v])=>[k,v])));
+  const tt = top(counts("t",""));
+  const c = (a,b,c2,cls)=>`<div class="kpi"><small>${a}</small><b class="${cls||""}">${b}</b><span>${c2}</span></div>`;
+  return c("Empresas",fmt(n),`${pct(n,TOTAL)} das ${fmt(TOTAL)} da base`)
+   + c("Em Portugal",fmt(rows.filter(x=>x[0]!=="Fora de Portugal").reduce((a,r)=>a+r[4],0)),"com sede no país")
+   + c("Região com mais empresas",tr?esc(tr):"–",tr?`${fmt(counts("r","")[tr])} empresas`:"nenhuma","t")
+   + c("Faixa de tamanho mais comum",tt?esc(tt.replace(" (self-employed)","")):"–",tt?`${fmt(counts("t","")[tt])} empresas`:"nenhuma","t");
+}
+function chips(){
+  const a = Object.keys(st).filter(k=>st[k]).map(k=>`<b>${LABEL[k]}:</b> ${esc(st[k])}`);
+  document.getElementById("chips").innerHTML = a.length? "Filtros ativos: "+a.join(" · ") : "Nenhum filtro ativo: mostrando as 388 empresas.";
+  document.getElementById("reset").disabled = !a.length;
+}
+function fillSelects(){
+  [["r","f-r","Todas as regiões"],["s","f-s","Todos os segmentos"],["t","f-t","Todos os tamanhos"],["p","f-p","Todos os períodos"]].forEach(([d,id,all])=>{
+    const el=document.getElementById(id);
+    el.innerHTML = `<option value="">${all}</option>`+ORDER[d].map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join("");
+    el.addEventListener("change",()=>{ st[d]=el.value; render(); });
+  });
+}
+function render(){
+  ["r","s","t","p"].forEach((d,i)=>{ document.getElementById(["f-r","f-s","f-t","f-p"][i]).value=st[d]; });
+  document.getElementById("kpis").innerHTML = kpis();
+  document.getElementById("g-r").innerHTML = hbars("r",false);
+  document.getElementById("g-t").innerHTML = cols("t");
+  document.getElementById("g-s").innerHTML = hbars("s",true);
+  document.getElementById("g-p").innerHTML = cols("p");
+  document.getElementById("g-h").innerHTML = heat();
+  chips();
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-d]"); if(!b) return;
+  const d=b.dataset.d,k=b.dataset.k; st[d]= st[d]===k? "":k; render();
+});
+document.getElementById("reset").addEventListener("click",()=>{ Object.keys(st).forEach(k=>st[k]=""); render(); });
+
+/* abas */
+const tabs=[["t-painel","p-painel"],["t-rel","p-rel"],["t-como","p-como"]];
+tabs.forEach(([t,p])=>document.getElementById(t).addEventListener("click",()=>{
+  tabs.forEach(([t2,p2])=>{ document.getElementById(t2).setAttribute("aria-selected",t2===t); document.getElementById(p2).classList.toggle("on",p2===p); });
+  window.scrollTo({top:0});
+}));
+tabs.forEach(([t],i)=>document.getElementById(t).addEventListener("keydown",e=>{
+  if(e.key==="ArrowRight"||e.key==="ArrowLeft"){ const n=tabs[(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length][0]; document.getElementById(n).focus(); document.getElementById(n).click(); }
+}));
+
+/* donut (relatório) */
+(function(){
+  const data=[["Área Metropolitana de Lisboa",235,"#5A3F33"],["Norte",89,"#886858"],["Centro",46,"#B79A8C"],["Não informada",10,"#D9C6BC"],["Algarve",3,"#FFD45B"],["Fora de Portugal",3,"#B98A00"],["Açores",2,"#7A7468"]];
+  const tot=data.reduce((a,d)=>a+d[1],0); let a0=-Math.PI/2; const R=88,r=52,cx=95,cy=95; let s="";
+  data.forEach(d=>{ const a1=a0+2*Math.PI*d[1]/tot, lg=(a1-a0)>Math.PI?1:0;
+    const p=(R_,a)=>[cx+R_*Math.cos(a),cy+R_*Math.sin(a)];
+    const [x0,y0]=p(R,a0),[x1,y1]=p(R,a1),[x2,y2]=p(r,a1),[x3,y3]=p(r,a0);
+    s+=`<path d="M${x0},${y0} A${R},${R} 0 ${lg} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${lg} 0 ${x3},${y3}Z" fill="${d[2]}" stroke="#F6F4EC" stroke-width="2"><title>${d[0]}: ${d[1]} (${pct(d[1],tot)})</title></path>`; a0=a1; });
+  s+=`<text x="95" y="92" text-anchor="middle" font-size="26" font-weight="800" fill="#2B2420">${tot}</text><text x="95" y="112" text-anchor="middle" font-size="12" fill="#5E5750">empresas</text>`;
+  document.getElementById("donut").innerHTML=s;
+  document.getElementById("donut-leg").innerHTML=data.map(d=>`<li><span class="sw" style="background:${d[2]}"></span>${d[0]}: <b>${d[1]}</b> (${pct(d[1],tot)})</li>`).join("");
+})();
+
+fillSelects(); render();
+</script>
+</body>
+</html>
